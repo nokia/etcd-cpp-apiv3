@@ -6,6 +6,7 @@
 #include <map>
 #include <mutex>
 #include <string>
+#include <limits>
 
 #include <grpc++/grpc++.h>
 #include "proto/rpc.grpc.pb.h"
@@ -38,9 +39,11 @@ namespace etcd
      *
      * @param etcd_url is the url of the etcd server to connect to, like "http://127.0.0.1:2379",
      *                 or multiple url, seperated by ',' or ';'.
+     * @param timeout timeout duration for each operation in terms of milliseconds
      * @param load_balancer is the load balance strategy, can be one of round_robin/pick_first/grpclb/xds.
      */
     Client(std::string const & etcd_url,
+           const long& timeout = std::numeric_limits<long>::max(),
            std::string const & load_balancer = "round_robin");
 
     /**
@@ -50,11 +53,13 @@ namespace etcd
      *                 or multiple url, seperated by ',' or ';'.
      * @param username username of etcd auth
      * @param password password of etcd auth
+     * @param timeout timeout duration for each operation in terms of milliseconds
      * @param load_balancer is the load balance strategy, can be one of round_robin/pick_first/grpclb/xds.
      */
     Client(std::string const & etcd_url,
            std::string const & username,
            std::string const & password,
+           const long& timeout = std::numeric_limits<long>::max(),
            std::string const & load_balancer = "round_robin");
 
     /**
@@ -266,6 +271,7 @@ namespace etcd
     std::mutex mutex_for_keepalives;
     std::map<std::string, int64_t> leases_for_locks;
     std::map<int64_t, std::shared_ptr<KeepAlive>> keep_alive_for_locks;
+    long timeout;
 
     friend class KeepAlive;
     friend class Watcher;

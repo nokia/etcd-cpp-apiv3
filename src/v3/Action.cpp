@@ -23,6 +23,7 @@ etcdv3::ActionParameters::ActionParameters()
   kv_stub = NULL;
   watch_stub = NULL;
   lease_stub = NULL;
+  timeout = std::numeric_limits<long>::max();
 }
 
 void etcdv3::Action::waitForResponse() 
@@ -30,8 +31,17 @@ void etcdv3::Action::waitForResponse()
   void* got_tag;
   bool ok = false;    
 
-  cq_.Next(&got_tag, &ok);
-  GPR_ASSERT(got_tag == (void*)this);
+  auto status = cq_.AsyncNext(&got_tag, &ok, std::chrono::system_clock::now() + std::chrono::milliseconds(parameters.timeout));
+  if( status == grpc::CompletionQueue::NextStatus::TIMEOUT )
+  {
+    ok = false;
+    this->status = grpc::Status(grpc::StatusCode::DEADLINE_EXCEEDED, "Timeout");
+  }
+  else
+  {
+    GPR_ASSERT(got_tag == (void*)this);
+  }
+  
 }
 
 const std::chrono::high_resolution_clock::time_point etcdv3::Action::startTimepoint() {

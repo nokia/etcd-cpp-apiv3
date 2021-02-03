@@ -2,6 +2,7 @@
 #define __V3_ACTION_HPP__
 
 #include <chrono>
+#include <limits>
 
 #include <grpc++/grpc++.h>
 #include "proto/rpc.grpc.pb.h"
@@ -41,6 +42,7 @@ namespace etcdv3
     Watch::Stub* watch_stub;
     Lease::Stub* lease_stub;
     Lock::Stub* lock_stub;
+    long timeout;
   };
 
   class Action

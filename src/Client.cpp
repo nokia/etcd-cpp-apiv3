@@ -129,6 +129,7 @@ const bool authenticate(std::shared_ptr<grpc::Channel> const &channel,
 }
 
 etcd::Client::Client(std::string const & address,
+                     const long& timeout, 
                      std::string const & load_balancer)
 {
   // create channels
@@ -145,11 +146,13 @@ etcd::Client::Client(std::string const & address,
   watchServiceStub= Watch::NewStub(this->channel);
   leaseServiceStub= Lease::NewStub(this->channel);
   lockServiceStub = Lock::NewStub(this->channel);
+  this->timeout = timeout;
 }
 
 etcd::Client::Client(std::string const & address,
                      std::string const & username,
                      std::string const & password,
+                     const long& timeout,
                      std::string const & load_balancer)
 {
   // create channels
@@ -173,6 +176,7 @@ etcd::Client::Client(std::string const & address,
   watchServiceStub= Watch::NewStub(this->channel);
   leaseServiceStub= Lease::NewStub(this->channel);
   lockServiceStub = Lock::NewStub(this->channel);
+  this->timeout = timeout;
 }
 
 pplx::task<etcd::Response> etcd::Client::get(std::string const & key)
@@ -182,6 +186,7 @@ pplx::task<etcd::Response> etcd::Client::get(std::string const & key)
   params.key.assign(key);
   params.withPrefix = false;
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncGetAction> call(new etcdv3::AsyncGetAction(params));
   return Response::create(call);
 }
@@ -193,7 +198,7 @@ pplx::task<etcd::Response> etcd::Client::set(std::string const & key, std::strin
   params.key.assign(key);
   params.value.assign(value);
   params.kv_stub = kvServiceStub .get();
-
+  params.timeout = this->timeout;
   if(ttl > 0)
   {
     auto res = leasegrant(ttl).get();
@@ -222,6 +227,7 @@ pplx::task<etcd::Response> etcd::Client::set(std::string const & key, std::strin
   params.value.assign(value);
   params.lease_id = leaseid;
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncSetAction> call(new etcdv3::AsyncSetAction(params));
   return Response::create(call);
 }
@@ -234,7 +240,7 @@ pplx::task<etcd::Response> etcd::Client::add(std::string const & key, std::strin
   params.key.assign(key);
   params.value.assign(value);
   params.kv_stub = kvServiceStub .get();
-
+  params.timeout = this->timeout;
   if(ttl > 0)
   {
     auto res = leasegrant(ttl).get();
@@ -262,6 +268,7 @@ pplx::task<etcd::Response> etcd::Client::add(std::string const & key, std::strin
   params.value.assign(value);
   params.lease_id = leaseid;
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncSetAction> call(new etcdv3::AsyncSetAction(params,true));
   return Response::create(call);
 }
@@ -274,7 +281,7 @@ pplx::task<etcd::Response> etcd::Client::modify(std::string const & key, std::st
   params.key.assign(key);
   params.value.assign(value);
   params.kv_stub = kvServiceStub .get();
-
+  params.timeout = this->timeout;
   if(ttl > 0)
   {
     auto res = leasegrant(ttl).get();
@@ -302,6 +309,7 @@ pplx::task<etcd::Response> etcd::Client::modify(std::string const & key, std::st
   params.value.assign(value);
   params.lease_id = leaseid;
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncUpdateAction> call(new etcdv3::AsyncUpdateAction(params));
   return Response::create(call);
 }
@@ -315,7 +323,7 @@ pplx::task<etcd::Response> etcd::Client::modify_if(std::string const & key, std:
   params.value.assign(value);
   params.old_value.assign(old_value);
   params.kv_stub = kvServiceStub .get();
-
+  params.timeout = this->timeout;
   if(ttl > 0)
   {
     auto res = leasegrant(ttl).get();
@@ -344,6 +352,7 @@ pplx::task<etcd::Response> etcd::Client::modify_if(std::string const & key, std:
   params.old_value.assign(old_value);
   params.lease_id = leaseid;
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncCompareAndSwapAction> call(new etcdv3::AsyncCompareAndSwapAction(params,etcdv3::Atomicity_Type::PREV_VALUE));
   return Response::create(call);
 }
@@ -356,6 +365,7 @@ pplx::task<etcd::Response> etcd::Client::modify_if(std::string const & key, std:
   params.value.assign(value);
   params.old_revision = old_index;
   params.kv_stub = kvServiceStub.get();
+  params.timeout = this->timeout;
   if(ttl > 0)
   {
     auto res = leasegrant(ttl).get();
@@ -384,6 +394,7 @@ pplx::task<etcd::Response> etcd::Client::modify_if(std::string const & key, std:
   params.lease_id = leaseid;
   params.old_revision = old_index;
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncCompareAndSwapAction> call(new etcdv3::AsyncCompareAndSwapAction(params,etcdv3::Atomicity_Type::PREV_INDEX));
   return Response::create(call);
 }
@@ -395,7 +406,8 @@ pplx::task<etcd::Response> etcd::Client::rm(std::string const & key)
   params.auth_token.assign(this->auth_token);
   params.key.assign(key);
   params.withPrefix = false;
-  params.kv_stub = kvServiceStub .get();
+  params.kv_stub = kvServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncDeleteAction> call(new etcdv3::AsyncDeleteAction(params));
   return Response::create(call);
 }
@@ -407,7 +419,8 @@ pplx::task<etcd::Response> etcd::Client::rm_if(std::string const & key, std::str
   params.auth_token.assign(this->auth_token);
   params.key.assign(key);
   params.old_value.assign(old_value);
-  params.kv_stub = kvServiceStub .get();
+  params.kv_stub = kvServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncCompareAndDeleteAction> call(new etcdv3::AsyncCompareAndDeleteAction(params,etcdv3::Atomicity_Type::PREV_VALUE));
   return Response::create(call);
 }
@@ -418,7 +431,8 @@ pplx::task<etcd::Response> etcd::Client::rm_if(std::string const & key, int old_
   params.auth_token.assign(this->auth_token);
   params.key.assign(key);
   params.old_revision = old_index;
-  params.kv_stub = kvServiceStub .get();
+  params.kv_stub = kvServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncCompareAndDeleteAction> call(new etcdv3::AsyncCompareAndDeleteAction(params, etcdv3::Atomicity_Type::PREV_INDEX));;
   return Response::create(call);
 
@@ -431,6 +445,7 @@ pplx::task<etcd::Response> etcd::Client::rmdir(std::string const & key, bool rec
   params.key.assign(key);
   params.withPrefix = recursive;
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncDeleteAction> call(new etcdv3::AsyncDeleteAction(params));
   return Response::create(call);
 }
@@ -443,6 +458,7 @@ pplx::task<etcd::Response> etcd::Client::ls(std::string const & key)
   params.withPrefix = true;
   params.limit = 0;  // default no limit.
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncGetAction> call(new etcdv3::AsyncGetAction(params));
   return Response::create(call);
 }
@@ -455,6 +471,7 @@ pplx::task<etcd::Response> etcd::Client::ls(std::string const & key, size_t cons
   params.withPrefix = true;
   params.limit = limit;
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncGetAction> call(new etcdv3::AsyncGetAction(params));
   return Response::create(call);
 }
@@ -466,6 +483,7 @@ pplx::task<etcd::Response> etcd::Client::watch(std::string const & key, bool rec
   params.key.assign(key);
   params.withPrefix = recursive;
   params.watch_stub = watchServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncWatchAction> call(new etcdv3::AsyncWatchAction(params));
   return Response::create(call);
 }
@@ -478,6 +496,7 @@ pplx::task<etcd::Response> etcd::Client::watch(std::string const & key, int from
   params.withPrefix = recursive;
   params.revision = fromIndex;
   params.watch_stub = watchServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncWatchAction> call(new etcdv3::AsyncWatchAction(params));
   return Response::create(call);
 }
@@ -488,6 +507,7 @@ pplx::task<etcd::Response> etcd::Client::leasegrant(int ttl)
   params.auth_token.assign(this->auth_token);
   params.ttl = ttl;
   params.lease_stub = leaseServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncLeaseGrantAction> call(new etcdv3::AsyncLeaseGrantAction(params));
   return Response::create(call);
 }
@@ -498,6 +518,7 @@ pplx::task<etcd::Response> etcd::Client::leaserevoke(int64_t lease_id)
   params.auth_token.assign(this->auth_token);
   params.lease_id = lease_id;
   params.lease_stub = leaseServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncLeaseRevokeAction> call(new etcdv3::AsyncLeaseRevokeAction(params));
   return Response::create(call);
 }
@@ -508,6 +529,7 @@ pplx::task<etcd::Response> etcd::Client::leasetimetolive(int64_t lease_id)
   params.auth_token.assign(this->auth_token);
   params.lease_id = lease_id;
   params.lease_stub = leaseServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncLeaseTimeToLiveAction> call(new etcdv3::AsyncLeaseTimeToLiveAction(params));
   return Response::create(call);
 }
@@ -515,7 +537,7 @@ pplx::task<etcd::Response> etcd::Client::leasetimetolive(int64_t lease_id)
 pplx::task<etcd::Response> etcd::Client::lock(std::string const &key) {
   etcdv3::ActionParameters params;
   params.auth_token.assign(this->auth_token);
-
+  params.timeout = this->timeout;
   static const int DEFAULT_LEASE_TTL_FOR_LOCK = 10;
 
   // routines in lock usually will be fast, less than 10 seconds.
@@ -555,6 +577,7 @@ pplx::task<etcd::Response> etcd::Client::lock(std::string const &key,
   params.key = key;
   params.lease_id = lease_id;
   params.lock_stub = lockServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncLockAction> call(new etcdv3::AsyncLockAction(params));
   return Response::create(call);
 }
@@ -578,6 +601,7 @@ pplx::task<etcd::Response> etcd::Client::unlock(std::string const &lock_key) {
   params.auth_token.assign(this->auth_token);
   params.key = lock_key;
   params.lock_stub = lockServiceStub.get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncUnlockAction> call(new etcdv3::AsyncUnlockAction(params));
   return Response::create(call);
 }
@@ -586,6 +610,7 @@ pplx::task<etcd::Response> etcd::Client::txn(etcdv3::Transaction const &txn) {
   etcdv3::ActionParameters params;
   params.auth_token.assign(this->auth_token);
   params.kv_stub = kvServiceStub .get();
+  params.timeout = this->timeout;
   std::shared_ptr<etcdv3::AsyncTxnAction> call(new etcdv3::AsyncTxnAction(params, txn));
   return Response::create(call);
 }

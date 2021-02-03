@@ -1,6 +1,8 @@
 #ifndef __ETCD_SYNC_CLIENT_HPP__
 #define __ETCD_SYNC_CLIENT_HPP__
 
+#include <limits>
+
 #include "etcd/Client.hpp"
 
 namespace etcd
@@ -21,9 +23,11 @@ namespace etcd
      *
      * @param etcd_url is the url of the etcd server to connect to, like "http://127.0.0.1:2379",
      *                 or multiple url, seperated by ',' or ';'.
+     * @param timeout timeout duration for each operation in terms of milliseconds
      * @param load_balancer is the load balance strategy, can be one of round_robin/pick_first/grpclb/xds.
      */
     SyncClient(std::string const & etcd_url,
+               const long& timeout = std::numeric_limits<long>::max(),
                std::string const & load_balancer = "round_robin");
 
     /**
@@ -33,11 +37,13 @@ namespace etcd
      *                 or multiple url, seperated by ',' or ';'.
      * @param username username of etcd auth
      * @param password password of etcd auth
+     * @param timeout timeout duration for each operation in terms of milliseconds
      * @param load_balancer is the load balance strategy, can be one of round_robin/pick_first/grpclb/xds.
      */
     SyncClient(std::string const & etcd_url,
                std::string const & username,
                std::string const & password,
+               const long& timeout = std::numeric_limits<long>::max(),
                std::string const & load_balancer = "round_robin");
 
     Response get(std::string const & key);
